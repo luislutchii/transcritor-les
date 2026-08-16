@@ -4,7 +4,9 @@ import { useCallback, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configurar worker do pdfjs
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+}
 
 interface PDFExtractorProps {
   onTextExtracted: (text: string, pageCount: number) => void;
@@ -68,7 +70,7 @@ export function PDFExtractor({
   }, [onTextExtracted, onError, onProgress, maxPages]);
 
   const handleFile = useCallback((file: File) => {
-    if (!file.type.includes('pdf')) {
+    if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
       onError('Arquivo não é um PDF válido');
       return;
     }
@@ -98,7 +100,9 @@ export function PDFExtractor({
     e.stopPropagation();
   }, []);
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     fileInputRef.current?.click();
   }, []);
 
@@ -113,7 +117,7 @@ export function PDFExtractor({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf"
+        accept=".pdf,application/pdf"
         onChange={handleInputChange}
         className="hidden"
         disabled={isProcessing}
@@ -129,7 +133,7 @@ export function PDFExtractor({
         `}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleClick()}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleClick(e as any)}
       >
         {isProcessing ? (
           <div className="space-y-4">

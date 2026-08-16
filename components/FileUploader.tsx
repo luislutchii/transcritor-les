@@ -133,61 +133,62 @@ export function FileUploader({
       const isVideo = file.type.startsWith('video/');
       
       if (isVideo) {
-        // Para vídeo: usar elemento <video> para extrair áudio
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.crossOrigin = 'anonymous';
-        video.muted = true; // Importante: evitar reprodução audível
+              // Para vídeo: usar elemento <video> para extrair áudio
+              const video = document.createElement('video');
+              video.preload = 'metadata';
+              video.crossOrigin = 'anonymous';
+              video.muted = true;
+              video.playsInline = true;
         
-        const objectUrl = URL.createObjectURL(file);
-        video.src = objectUrl;
+              const objectUrl = URL.createObjectURL(file);
+              video.src = objectUrl;
         
-        video.onloadedmetadata = async () => {
-          try {
-            const duration = video.duration;
+              video.onloadedmetadata = async () => {
+                try {
+                  const duration = video.duration;
             
-            // Criar OfflineAudioContext para renderizar
-            const offlineContext = new OfflineAudioContext(
-              1, // mono
-              duration * 16000,
-              16000
-            );
+                  // Usar audioContext principal para criar MediaStreamSource
+                  // @ts-expect-error - captureStream exists on HTMLVideoElement but not in TS types
+                  const stream = video.captureStream();
+                  const mediaStreamSource = audioContext.createMediaStreamSource(stream);
             
-            // Capturar stream do vídeo e criar source no offlineContext
-            // @ts-expect-error - captureStream exists on HTMLVideoElement but not in TS types
-            const stream = video.captureStream();
-            // @ts-expect-error - createMediaStreamSource exists on OfflineAudioContext but not in TS types
-            const source = offlineContext.createMediaStreamSource(stream);
-            source.connect(offlineContext.destination);
+                  // Criar OfflineAudioContext para renderizar
+                  const offlineContext = new OfflineAudioContext(
+                    1, // mono
+                    duration * 16000,
+                    16000
+                  );
             
-            // Reproduzir e renderizar
-            video.currentTime = 0;
-            video.muted = true;
-            await video.play();
+                  // Conectar source ao destination do offlineContext
+                  mediaStreamSource.connect(offlineContext.destination);
             
-            const renderedBuffer = await offlineContext.startRendering();
-            const audioData = renderedBuffer.getChannelData(0);
+                  // Reproduzir e renderizar
+                  video.currentTime = 0;
+                  await video.play();
             
-            URL.revokeObjectURL(objectUrl);
+                  const renderedBuffer = await offlineContext.startRendering();
+                  const audioData = renderedBuffer.getChannelData(0);
             
-            resolve({
-              audioData: new Float32Array(audioData),
-              duration: video.duration,
-            });
-          } catch (error) {
-            URL.revokeObjectURL(objectUrl);
-            reject(new Error(`Erro ao processar vídeo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`));
-          }
-        };
+                  URL.revokeObjectURL(objectUrl);
+            
+                  resolve({
+                    audioData: new Float32Array(audioData),
+                    duration: video.duration,
+                  });
+                } catch (error) {
+                  URL.revokeObjectURL(objectUrl);
+                  reject(new Error(`Erro ao processar vídeo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`));
+                }
+              };
         
-        video.onerror = () => {
-          URL.revokeObjectURL(objectUrl);
-          reject(new Error('Erro ao carregar vídeo'));
-        };
+              video.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error('Erro ao carregar vídeo'));
+              };
         
-        // Carregar o vídeo
-        video.load();
-      } else {
+              // Carregar o vídeo
+              video.load();
+            } else {
         // Para áudio: usar decodeAudioData (método original)
         const reader = new FileReader();
         

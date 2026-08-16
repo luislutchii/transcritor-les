@@ -10,7 +10,7 @@ env.allowLocalModels = false;
 env.useBrowserCache = true;
 
 // Detectar se estamos em ambiente sem suporte a SharedArrayBuffer
-const hasCrossOriginIsolation = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
+var hasCrossOriginIsolation = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
 
 if (hasCrossOriginIsolation) {
   env.backends = ['webgpu', 'wasm'];
@@ -22,9 +22,9 @@ if (hasCrossOriginIsolation) {
 }
 
 // Estado do worker
-let translator = null;
-let currentModelId = 'Xenova/nllb-200-distilled-600M';
-let isModelLoading = false;
+var translator = null;
+var currentModelId = 'Xenova/nllb-200-distilled-600M';
+var isModelLoading = false;
 
 // Função auxiliar para enviar mensagens
 function postMessage(message) {
@@ -32,12 +32,12 @@ function postMessage(message) {
 }
 
 function log(message) {
-  postMessage({ type: 'LOG', message: `[TranslationWorker] ${message}` });
-  console.log(`[TranslationWorker] ${message}`);
+  postMessage({ type: 'LOG', message: '[TranslationWorker] ' + message });
+  console.log('[TranslationWorker] ' + message);
 }
 
 // Mapear códigos de idioma para NLLB
-const LANGUAGE_CODES = {
+var LANGUAGE_CODES = {
   'auto': 'auto',
   'pt': 'por_Latn',
   'en': 'eng_Latn',
@@ -87,7 +87,7 @@ const LANGUAGE_CODES = {
 // Inicializar pipeline de tradução
 async function initializePipeline(modelId) {
   if (translator && currentModelId === modelId) {
-    log(`Modelo ${modelId} já carregado`);
+    log('Modelo ' + modelId + ' ja carregado');
     return;
   }
 
@@ -95,24 +95,24 @@ async function initializePipeline(modelId) {
   currentModelId = modelId;
 
   try {
-    log(`Inicializando pipeline de tradução para ${modelId}...`);
+    log('Inicializando pipeline de traducao para ' + modelId + '...');
 
     translator = await pipeline(
       'translation',
       modelId,
       {
-        progress_callback: (progress) => {
+        progress_callback: function(progress) {
           postMessage({
             type: 'PROGRESS',
             progress: progress.progress ?? 0,
-            status: progress.status ?? 'Carregando modelo de tradução...',
+            status: progress.status ?? 'Carregando modelo de traducao...',
             file: progress.file,
           });
         },
       }
     );
 
-    log(`Modelo de tradução ${modelId} carregado com sucesso`);
+    log('Modelo de traducao ' + modelId + ' carregado com sucesso');
     isModelLoading = false;
 
     postMessage({
@@ -121,37 +121,42 @@ async function initializePipeline(modelId) {
     });
   } catch (error) {
     isModelLoading = false;
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    log(`Erro ao carregar modelo de tradução: ${errorMessage}`);
+    var errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    log('Erro ao carregar modelo de traducao: ' + errorMessage);
     
     postMessage({
       type: 'ERROR',
-      error: `Falha ao carregar modelo de tradução: ${errorMessage}`,
+      error: 'Falha ao carregar modelo de traducao: ' + errorMessage,
       code: 'MODEL_LOAD_ERROR',
     });
   }
 }
 
 // Traduzir texto
-async function translateText(text, sourceLang, targetLang, options = {}) {
+async function translateText(text, sourceLang, targetLang, options) {
   if (!translator) {
     postMessage({
       type: 'ERROR',
-      error: 'Modelo de tradução não inicializado. Chame INIT primeiro.',
+      error: 'Modelo de traducao nao inicializado. Chame INIT primeiro.',
       code: 'MODEL_NOT_READY',
     });
     return;
   }
 
-  const startTime = performance.now();
+  var startTime = performance.now();
 
   try {
-    log(`Iniciando tradução (${text.length} caracteres)...`);
+    log('Iniciando traducao (' + text.length + ' caracteres)...');
 
-    const sourceLangCode = LANGUAGE_CODES[sourceLang] || 'auto';
-    const targetLangCode = LANGUAGE_CODES[targetLang] || 'eng_Latn';
+    var sourceLangCode = LANGUAGE_CODES[sourceLang] || 'eng_Latn';
+    var targetLangCode = LANGUAGE_CODES[targetLang] || 'eng_Latn';
 
-    const result = await translator(text, {
+    // NLLB não suporta 'auto' como source_lang, usar inglês como fallback
+    if (sourceLangCode === 'auto') {
+      sourceLangCode = 'eng_Latn';
+    }
+
+    var result = await translator(text, {
       src_lang: sourceLangCode,
       tgt_lang: targetLangCode,
       max_length: options.maxLength ?? 512,
@@ -159,51 +164,52 @@ async function translateText(text, sourceLang, targetLang, options = {}) {
       early_stopping: true,
     });
 
-    const duration = (performance.now() - startTime) / 1000;
-    const translatedText = result[0]?.translation_text ?? '';
+    var duration = (performance.now() - startTime) / 1000;
+    var translatedText = result[0]?.translation_text ?? '';
 
-    log(`Tradução concluída em ${duration.toFixed(2)}s`);
+    log('Traducao concluida em ' + duration.toFixed(2) + 's');
 
     postMessage({
       type: 'RESULT',
       originalText: text,
-      translatedText,
-      sourceLang,
-      targetLang,
-      duration,
+      translatedText: translatedText,
+      sourceLang: sourceLang,
+      targetLang: targetLang,
+      duration: duration,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    log(`Erro na tradução: ${errorMessage}`);
+    var errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    log('Erro na traducao: ' + errorMessage);
     postMessage({
       type: 'ERROR',
-      error: `Falha na tradução: ${errorMessage}`,
+      error: 'Falha na traducao: ' + errorMessage,
       code: 'TRANSLATION_ERROR',
     });
   }
 }
 
 // Traduzir texto longo em chunks
-async function translateLongText(text, sourceLang, targetLang, options = {}) {
+async function translateLongText(text, sourceLang, targetLang, options) {
   if (!translator) {
     postMessage({
       type: 'ERROR',
-      error: 'Modelo de tradução não inicializado.',
+      error: 'Modelo de traducao nao inicializado.',
       code: 'MODEL_NOT_READY',
     });
     return;
   }
 
-  const maxChunkSize = options.maxChunkSize ?? 400;
-  const overlap = options.overlap ?? 50;
+  var maxChunkSize = options.maxChunkSize ?? 400;
+  var overlap = options.overlap ?? 50;
   
   // Dividir texto em sentenças
-  const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+  var sentences = text.split(/(?<=[.!?])\s+/).filter(function(s) { return s.trim().length > 0; });
   
-  let chunks = [];
-  let currentChunk = '';
+  var chunks = [];
+  var currentChunk = '';
   
-  for (const sentence of sentences) {
+  for (var i = 0; i < sentences.length; i++) {
+    var sentence = sentences[i];
     if ((currentChunk + sentence).length > maxChunkSize && currentChunk.length > 0) {
       chunks.push(currentChunk.trim());
       currentChunk = currentChunk.slice(-overlap) + ' ' + sentence;
@@ -215,22 +221,27 @@ async function translateLongText(text, sourceLang, targetLang, options = {}) {
     chunks.push(currentChunk.trim());
   }
 
-  log(`Traduzindo ${chunks.length} chunks...`);
+  log('Traduzindo ' + chunks.length + ' chunks...');
 
-  const sourceLangCode = LANGUAGE_CODES[sourceLang] || 'auto';
-  const targetLangCode = LANGUAGE_CODES[targetLang] || 'eng_Latn';
+  var sourceLangCode = LANGUAGE_CODES[sourceLang] || 'eng_Latn';
+  var targetLangCode = LANGUAGE_CODES[targetLang] || 'eng_Latn';
   
-  let fullTranslation = '';
+  // NLLB não suporta 'auto'
+  if (sourceLangCode === 'auto') {
+    sourceLangCode = 'eng_Latn';
+  }
   
-  for (let i = 0; i < chunks.length; i++) {
+  var fullTranslation = '';
+  
+  for (var i = 0; i < chunks.length; i++) {
     try {
       postMessage({
         type: 'PROGRESS',
         progress: Math.round((i / chunks.length) * 100),
-        status: `Traduzindo chunk ${i + 1}/${chunks.length}`,
+        status: 'Traduzindo chunk ' + (i + 1) + '/' + chunks.length,
       });
 
-      const result = await translator(chunks[i], {
+      var result = await translator(chunks[i], {
         src_lang: sourceLangCode,
         tgt_lang: targetLangCode,
         max_length: 512,
@@ -238,9 +249,9 @@ async function translateLongText(text, sourceLang, targetLang, options = {}) {
         early_stopping: true,
       });
 
-      fullTranslation += (fullTranslation ? ' ' : '') + result[0]?.translation_text ?? '';
+      fullTranslation += (fullTranslation ? ' ' : '') + (result[0]?.translation_text ?? '');
     } catch (error) {
-      log(`Erro no chunk ${i}: ${error.message}`);
+      log('Erro no chunk ' + i + ': ' + error.message);
       fullTranslation += (fullTranslation ? ' ' : '') + chunks[i]; // Fallback: manter original
     }
   }
@@ -249,15 +260,15 @@ async function translateLongText(text, sourceLang, targetLang, options = {}) {
     type: 'RESULT',
     originalText: text,
     translatedText: fullTranslation,
-    sourceLang,
-    targetLang,
+    sourceLang: sourceLang,
+    targetLang: targetLang,
     duration: 0,
   });
 }
 
 // Handler principal de mensagens
-self.onmessage = async (event) => {
-  const message = event.data;
+self.onmessage = async function(event) {
+  var message = event.data;
 
   switch (message.type) {
     case 'INIT':
@@ -273,33 +284,33 @@ self.onmessage = async (event) => {
       break;
 
     case 'TERMINATE':
-      log('Encerrando worker de tradução...');
+      log('Encerrando worker de traducao...');
       translator = null;
       self.close();
       break;
 
     default:
-      log(`Mensagem desconhecida: ${message.type}`);
+      log('Mensagem desconhecida: ' + message.type);
   }
 };
 
-self.onerror = (error) => {
-  log(`Erro não capturado: ${error.message}`);
+self.onerror = function(error) {
+  log('Erro nao capturado: ' + error.message);
   postMessage({
     type: 'ERROR',
-    error: `Erro interno do worker: ${error.message}`,
+    error: 'Erro interno do worker: ' + error.message,
     code: 'WORKER_ERROR',
   });
 };
 
-self.onunhandledrejection = (event) => {
-  log(`Promise rejeitada: ${event.reason}`);
+self.onunhandledrejection = function(event) {
+  log('Promise rejeitada: ' + event.reason);
   postMessage({
     type: 'ERROR',
-    error: `Erro assíncrono: ${event.reason}`,
+    error: 'Erro assincrono: ' + event.reason,
     code: 'UNHANDLED_REJECTION',
   });
 };
 
 log('TranslationWorker iniciado e aguardando mensagens...');
-log(`Ambiente: ${hasCrossOriginIsolation ? 'crossOriginIsolated (WebGPU+WASM)' : 'Sem crossOriginIsolated - WASM fallback'}`);
+log('Ambiente: ' + (hasCrossOriginIsolation ? 'crossOriginIsolated (WebGPU+WASM)' : 'Sem crossOriginIsolated - WASM fallback'));
