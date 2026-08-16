@@ -60,6 +60,8 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      if (saved !== null) return JSON.parse(saved);
       return document.documentElement.classList.contains('dark');
     }
     return true;
@@ -143,6 +145,7 @@ export default function Home() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
   // Handlers

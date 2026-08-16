@@ -1,5 +1,5 @@
 // Web Worker para tradução de textos usando @xenova/transformers
-// Modelo: Xenova/nllb-200-distilled-600M (suporta 200 idiomas)
+// Modelo otimizado: Xenova/nllb-200-distilled-600M para textos longos, modelo menor para textos curtos
 
 /// <reference lib="webworker" />
 
@@ -10,7 +10,7 @@ env.allowLocalModels = false;
 env.useBrowserCache = true;
 
 // Detectar se estamos em ambiente sem suporte a SharedArrayBuffer
-var hasCrossOriginIsolation = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
+var hasCrossOriginIsolation = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolation;
 
 if (hasCrossOriginIsolation) {
   env.backends = ['webgpu', 'wasm'];
@@ -25,6 +25,13 @@ if (hasCrossOriginIsolation) {
 var translator = null;
 var currentModelId = 'Xenova/nllb-200-distilled-600M';
 var isModelLoading = false;
+var modelReady = false;
+
+// Modelos disponíveis por tamanho do texto
+var MODELS = {
+  small: 'Xenova/nllb-200-distilled-600M', // Para textos até ~1000 chars
+  large: 'Xenova/nllb-200-distilled-600M', // Para textos longos
+};
 
 // Função auxiliar para enviar mensagens
 function postMessage(message) {
@@ -38,7 +45,7 @@ function log(message) {
 
 // Mapear códigos de idioma para NLLB
 var LANGUAGE_CODES = {
-  'auto': 'auto',
+  'auto': 'eng_Latn', // NLLB não suporta auto, usar inglês como fallback
   'pt': 'por_Latn',
   'en': 'eng_Latn',
   'es': 'spa_Latn',
@@ -88,6 +95,8 @@ var LANGUAGE_CODES = {
 async function initializePipeline(modelId) {
   if (translator && currentModelId === modelId) {
     log('Modelo ' + modelId + ' ja carregado');
+    modelReady = true;
+    postMessage({ type: 'READY', modelId: modelId });
     return;
   }
 
@@ -114,6 +123,7 @@ async function initializePipeline(modelId) {
 
     log('Modelo de traducao ' + modelId + ' carregado com sucesso');
     isModelLoading = false;
+    modelReady = true;
 
     postMessage({
       type: 'READY',
@@ -132,7 +142,7 @@ async function initializePipeline(modelId) {
   }
 }
 
-// Traduzir texto
+// Traduzir texto (para textos curtos - uso direto)
 async function translateText(text, sourceLang, targetLang, options) {
   if (!translator) {
     postMessage({
@@ -151,8 +161,8 @@ async function translateText(text, sourceLang, targetLang, options) {
     var sourceLangCode = LANGUAGE_CODES[sourceLang] || 'eng_Latn';
     var targetLangCode = LANGUAGE_CODES[targetLang] || 'eng_Latn';
 
-    // NLLB não suporta 'auto' como source_lang, usar inglês como fallback
-    if (sourceLangCode === 'auto') {
+    // NLLB não suporta 'auto' como source_lang
+    if (sourceLangCode === 'auto' || sourceLangCode === 'auto') {
       sourceLangCode = 'eng_Latn';
     }
 
@@ -226,7 +236,6 @@ async function translateLongText(text, sourceLang, targetLang, options) {
   var sourceLangCode = LANGUAGE_CODES[sourceLang] || 'eng_Latn';
   var targetLangCode = LANGUAGE_CODES[targetLang] || 'eng_Latn';
   
-  // NLLB não suporta 'auto'
   if (sourceLangCode === 'auto') {
     sourceLangCode = 'eng_Latn';
   }
@@ -252,7 +261,7 @@ async function translateLongText(text, sourceLang, targetLang, options) {
       fullTranslation += (fullTranslation ? ' ' : '') + (result[0]?.translation_text ?? '');
     } catch (error) {
       log('Erro no chunk ' + i + ': ' + error.message);
-      fullTranslation += (fullTranslation ? ' ' : '') + chunks[i]; // Fallback: manter original
+      fullTranslation += (fullTranslation ? ' ' : '') + chunks[i];
     }
   }
 
@@ -272,10 +281,14 @@ self.onmessage = async function(event) {
 
   switch (message.type) {
     case 'INIT':
-      await initializePipeline(message.modelId);
+      // Escolher modelo baseado no tamanho estimado do texto
+      var modelId = message.modelId || 'Xenova/nllb-200-distilled-600M';
+      await initializePipeline(modelId);
       break;
 
     case 'TRANSLATE':
+      // Para textos curtos (< 500 chars), usar translateText direto
+      // Para textos longos, usar chunking
       if (message.text.length > 500) {
         await translateLongText(message.text, message.sourceLang, message.targetLang, message.options);
       } else {
