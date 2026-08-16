@@ -58,7 +58,12 @@ export default function Home() {
 
   // UI state
   const [showSettings, setShowSettings] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return true;
+  });
   const [activeStep, setActiveStep] = useState(0);
   const [activeTab, setActiveTab] = useState<'transcribe' | 'translate'>('transcribe');
 
@@ -249,9 +254,6 @@ export default function Home() {
                 alt="Lutchi Enterprise Systems"
                 className="w-10 h-10 rounded-xl object-cover"
               />
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <Mic className="w-6 h-6 text-primary-foreground" />
-              </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">TranscritorLES</h1>
               </div>
@@ -308,7 +310,7 @@ export default function Home() {
                   <ExternalLink className="w-5 h-5" />
                 </a>
                 <a
-                  href="https://github.com/lutchi"
+                  href="https://github.com/luislutchii"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 glass rounded-lg hover:bg-secondary/80 transition-colors"

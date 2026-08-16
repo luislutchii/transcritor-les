@@ -272,7 +272,7 @@ export function Footer() {
               </a>
 
               <a
-                href="https://github.com/lutchi"
+                href="https://github.com/luislutchii"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-3 glass rounded-lg hover:bg-secondary/50 hover:border-gray-400/30 transition-all group"
