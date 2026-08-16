@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none">
+  <rect width="400" height="400" fill="#0f172a"/>
+  <circle cx="200" cy="140" r="70" fill="#1e293b"/>
+  <ellipse cx="200" cy="320" rx="120" ry="100" fill="#1e293b"/>
+  <text x="200" y="380" text-anchor="middle" font-family="system-ui" font-size="14" fill="#3b82f6" opacity="0.6">Developer</text>
+</svg>

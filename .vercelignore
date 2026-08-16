@@ -1,0 +1,52 @@
+# Vercel ignore patterns
+# These files won't be deployed
+
+# Source files
+*.ts
+*.tsx
+*.js
+*.jsx
+*.json
+*.md
+*.css
+*.d.ts
+
+# Config files (except those needed for build)
+!next.config.js
+!tsconfig.json
+!package.json
+!tailwind.config.ts
+!postcss.config.js
+
+# Build artifacts
+.next/
+out/
+dist/
+build/
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test
+coverage/
+.nyc_output/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel
