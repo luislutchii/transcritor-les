@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Mic, Cpu, Zap, Settings, Info, Github, ExternalLink, Moon, Sun, Trash2, RotateCcw, AlertCircle, Loader2 } from 'lucide-react';
+import { Mic, Cpu, Zap, Settings, Info, Github, ExternalLink, Moon, Sun, Trash2, RotateCcw, AlertCircle, Loader2, BookOpen, Languages } from 'lucide-react';
 import { FileUploader } from '@/components/FileUploader';
 import { MediaPlayer } from '@/components/MediaPlayer';
 import { TranscriptionView } from '@/components/TranscriptionView';
 import { ProgressBar, Stepper } from '@/components/ProgressBar';
 import { Footer } from '@/components/Footer';
+import { BookTranslator } from '@/components/BookTranslator';
 
 const MODELS = [
   { id: 'Xenova/whisper-tiny', label: 'Tiny', size: '~39 MB', speed: 'Mais rápido', recommended: true },
@@ -59,6 +60,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const [activeStep, setActiveStep] = useState(0);
+  const [activeTab, setActiveTab] = useState<'transcribe' | 'translate'>('transcribe');
 
   // Worker ref
   const workerRef = useRef<Worker | null>(null);
@@ -407,143 +409,181 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Painel Esquerdo: Upload + Player */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Upload */}
-            <div className="glass rounded-xl p-6">
-              <FileUploader
-                onFileSelect={handleFileSelect}
-                onError={handleFileError}
-                maxSizeMB={2048}
-              />
+        {/* Tabs para alternar entre Transcrição e Tradução de Livros */}
+        <div className="mb-6 border-b border-border/50">
+          <nav className="flex gap-1" role="tablist">
+            <button
+              role="tab"
+              aria-selected={activeTab === 'transcribe'}
+              onClick={() => setActiveTab('transcribe')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === 'transcribe'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+              }`}
+            >
+              <Mic className="w-4 h-4 inline mr-2" />
+              Transcrição de Áudio/Vídeo
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'translate'}
+              onClick={() => setActiveTab('translate')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === 'translate'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 inline mr-2" />
+              Tradutor de Livros (PDF)
+            </button>
+          </nav>
+        </div>
 
-              {currentFile && (
-                <div className="mt-4 glass rounded-lg p-4 animate-fade-in">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
-                      {fileType === 'video' ? (
-                        <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polygon points="23 7 16 12 23 17 23 7" />
-                          <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                        </svg>
-                      ) : (
-                        <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M9 18V5l12-2v13" />
-                          <circle cx="6" cy="18" r="3" />
-                          <circle cx="18" cy="16" r="3" />
-                        </svg>
-                      )}
+        {activeTab === 'transcribe' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Painel Esquerdo: Upload + Player */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Upload */}
+              <div className="glass rounded-xl p-6">
+                <FileUploader
+                  onFileSelect={handleFileSelect}
+                  onError={handleFileError}
+                  maxSizeMB={2048}
+                />
+
+                {currentFile && (
+                  <div className="mt-4 glass rounded-lg p-4 animate-fade-in">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                        {fileType === 'video' ? (
+                          <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="23 7 16 12 23 17 23 7" />
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                          </svg>
+                        ) : (
+                          <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M9 18V5l12-2v13" />
+                            <circle cx="6" cy="18" r="3" />
+                            <circle cx="18" cy="16" r="3" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">{currentFile.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {fileType === 'video' ? 'Vídeo' : 'Áudio'} • {Math.round(audioDuration / 60)}:{String(Math.round(audioDuration % 60)).padStart(2, '0')} • {(currentFile.size / 1024 / 1024).toFixed(1)} MB
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleClear}
+                        className="p-2 glass rounded-lg hover:bg-secondary/80 transition-colors text-muted-foreground hover:text-red-400"
+                        aria-label="Remover arquivo"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{currentFile.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {fileType === 'video' ? 'Vídeo' : 'Áudio'} • {Math.round(audioDuration / 60)}:{String(Math.round(audioDuration % 60)).padStart(2, '0')} • {(currentFile.size / 1024 / 1024).toFixed(1)} MB
+                  </div>
+                )}
+
+                {/* Botão de transcrever */}
+                {(currentFile && isModelLoaded && !isTranscribing) && (
+                  <button
+                    onClick={handleTranscribe}
+                    disabled={isTranscribing || !audioData}
+                    className="w-full mt-4 py-3 px-6 bg-primary text-primary-foreground rounded-lg font-semibold text-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Mic className="w-5 h-5" />
+                    Iniciar Transcrição
+                  </button>
+                )}
+
+                {(currentFile && !isModelLoaded) && (
+                  <div className="mt-4 p-4 glass rounded-lg border border-yellow-500/30 bg-yellow-500/10">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                      <p className="text-sm text-yellow-300">
+                        Modelo carregando... Aguarde o download completar antes de transcrever.
                       </p>
                     </div>
-                    <button
-                      onClick={handleClear}
-                      className="p-2 glass rounded-lg hover:bg-secondary/80 transition-colors text-muted-foreground hover:text-red-400"
-                      aria-label="Remover arquivo"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
                   </div>
+                )}
+
+                {workerError && (
+                  <div className="mt-4 p-4 glass rounded-lg border border-red-500/30 bg-red-500/10 animate-shake">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-red-300">{workerError}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Media Player */}
+              {currentFile && objectUrl && (
+                <div className="glass rounded-xl overflow-hidden">
+                  <MediaPlayer
+                    src={objectUrl}
+                    type={fileType}
+                    onTimeUpdate={handleSeek}
+                    onSeek={handleSeek}
+                  />
                 </div>
               )}
 
-              {/* Botão de transcrever */}
-              {(currentFile && isModelLoaded && !isTranscribing) && (
-                <button
-                  onClick={handleTranscribe}
-                  disabled={isTranscribing || !audioData}
-                  className="w-full mt-4 py-3 px-6 bg-primary text-primary-foreground rounded-lg font-semibold text-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Mic className="w-5 h-5" />
-                  Iniciar Transcrição
-                </button>
-              )}
-
-              {(currentFile && !isModelLoaded) && (
-                <div className="mt-4 p-4 glass rounded-lg border border-yellow-500/30 bg-yellow-500/10">
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                      <line x1="12" y1="9" x2="12" y2="13" />
-                      <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <p className="text-sm text-yellow-300">
-                      Modelo carregando... Aguarde o download completar antes de transcrever.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {workerError && (
-                <div className="mt-4 p-4 glass rounded-lg border border-red-500/30 bg-red-500/10 animate-shake">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-300">{workerError}</p>
-                  </div>
+              {/* Progress do Worker */}
+              {(isTranscribing || workerProgress > 0) && workerProgress < 100 && (
+                <div className="glass rounded-xl p-6">
+                  <ProgressBar
+                    progress={workerProgress}
+                    status={workerStatus}
+                    showDetails={true}
+                  />
                 </div>
               )}
             </div>
 
-            {/* Media Player */}
-            {currentFile && objectUrl && (
-              <div className="glass rounded-xl overflow-hidden">
-                <MediaPlayer
-                  src={objectUrl}
-                  type={fileType}
-                  onTimeUpdate={handleSeek}
-                  onSeek={handleSeek}
-                />
+            {/* Painel Direito: Transcrição */}
+            <div className="space-y-6">
+              <TranscriptionView
+                text={transcriptionText}
+                segments={transcriptionSegments}
+                language={detectedLanguage}
+                duration={audioDuration || transcriptionDuration}
+                onSeek={handleSeek}
+                onCopy={handleCopy}
+                onDownloadTxt={handleDownloadTxt}
+                onDownloadSrt={handleDownloadSrt}
+                isProcessing={isTranscribing}
+              />
+
+              {/* Info card */}
+              <div className="glass rounded-xl p-4">
+                <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                  <Info className="w-5 h-5" />
+                  Sobre o TranscritorLES
+                </h3>
+                <ul className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-start gap-2">• <span>Processamento 100% local no navegador (WebGPU/WASM)</span></li>
+                  <li className="flex items-start gap-2">• <span>Privacidade total: nenhum áudio sai do seu dispositivo</span></li>
+                  <li className="flex items-start gap-2">• <span>Modelos Whisper da OpenAI via Transformers.js</span></li>
+                  <li className="flex items-start gap-2">• <span>Suporta áudio (MP3, WAV, M4A, WebM) e vídeo (MP4, WebM, MOV)</span></li>
+                  <li className="flex items-start gap-2">• <span>Exportação em TXT, SRT e cópia para área de transferência</span></li>
+                  <li className="flex items-start gap-2">• <span>Desenvolvido por <strong className="text-foreground">Lutchi Enterprise Systems</strong></span></li>
+                </ul>
               </div>
-            )}
-
-            {/* Progress do Worker */}
-            {(isTranscribing || workerProgress > 0) && workerProgress < 100 && (
-              <div className="glass rounded-xl p-6">
-                <ProgressBar
-                  progress={workerProgress}
-                  status={workerStatus}
-                  showDetails={true}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Painel Direito: Transcrição */}
-          <div className="space-y-6">
-            <TranscriptionView
-              text={transcriptionText}
-              segments={transcriptionSegments}
-              language={detectedLanguage}
-              duration={audioDuration || transcriptionDuration}
-              onSeek={handleSeek}
-              onCopy={handleCopy}
-              onDownloadTxt={handleDownloadTxt}
-              onDownloadSrt={handleDownloadSrt}
-              isProcessing={isTranscribing}
-            />
-
-            {/* Info card */}
-            <div className="glass rounded-xl p-4">
-              <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
-                <Info className="w-5 h-5" />
-                Sobre o TranscritorLES
-              </h3>
-              <ul className="text-sm text-muted-foreground space-y-2">
-                <li className="flex items-start gap-2">• <span>Processamento 100% local no navegador (WebGPU/WASM)</span></li>
-                <li className="flex items-start gap-2">• <span>Privacidade total: nenhum áudio sai do seu dispositivo</span></li>
-                <li className="flex items-start gap-2">• <span>Modelos Whisper da OpenAI via Transformers.js</span></li>
-                <li className="flex items-start gap-2">• <span>Suporta áudio (MP3, WAV, M4A, WebM) e vídeo (MP4, WebM, MOV)</span></li>
-                <li className="flex items-start gap-2">• <span>Exportação em TXT, SRT e cópia para área de transferência</span></li>
-                <li className="flex items-start gap-2">• <span>Desenvolvido por <strong className="text-foreground">Lutchi Enterprise Systems</strong></span></li>
-              </ul>
             </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'translate' && (
+          <BookTranslator onError={handleFileError} />
+        )}
       </main>
 
       {/* Footer Corporativo LES */}
