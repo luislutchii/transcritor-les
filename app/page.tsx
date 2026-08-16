@@ -242,7 +242,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               {/* Logotipo da LES */}
               <img
-                src="/icons/logotipo.jpg"
+                src="/transcritor-les/icons/logotipo.jpg"
                 alt="Lutchi Enterprise Systems"
                 className="w-10 h-10 rounded-xl object-cover"
               />

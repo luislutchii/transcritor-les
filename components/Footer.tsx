@@ -14,49 +14,49 @@ const teamMembers: TeamMember[] = [
   {
     name: 'Luís Lutchi',
     role: 'CEO & Founder',
-    image: '/team/ceo.jpg',
+    image: '/transcritor-les/team/ceo.jpg',
     isCEO: true,
     badge: 'Liderança Executiva',
   },
   {
     name: 'João Silva',
     role: 'Desenvolvedor Principal',
-    image: '/team/member1.jpg',
+    image: '/transcritor-les/team/member1.jpg',
   },
   {
     name: 'Maria Santos',
     role: 'Engenheira de IA',
-    image: '/team/member2.jpg',
+    image: '/transcritor-les/team/member2.jpg',
   },
   {
     name: 'Pedro Costa',
     role: 'UI/UX Designer',
-    image: '/team/member3.jpg',
+    image: '/transcritor-les/team/member3.jpg',
   },
   {
     name: 'Ana Ferreira',
     role: 'Gestora de Operações',
-    image: '/team/member4.jpg',
+    image: '/transcritor-les/team/member4.jpg',
   },
   {
     name: 'Carlos Mendes',
     role: 'Arquiteto de Software',
-    image: '/team/member5.jpg',
+    image: '/transcritor-les/team/member5.jpg',
   },
   {
     name: 'Juliana Rocha',
     role: 'DevOps Engineer',
-    image: '/team/member6.jpg',
+    image: '/transcritor-les/team/member6.jpg',
   },
   {
     name: 'Ricardo Alves',
     role: 'Especialista em Segurança',
-    image: '/team/member7.jpg',
+    image: '/transcritor-les/team/member7.jpg',
   },
   {
     name: 'Fernanda Lima',
     role: 'Product Manager',
-    image: '/team/member8.jpg',
+    image: '/transcritor-les/team/member8.jpg',
   },
 ];
 
@@ -164,10 +164,10 @@ export function Footer() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <img
-                src="/icons/logotipo.jpg"
-                alt="Lutchi Enterprise Systems"
-                className="w-10 h-10 rounded-xl object-cover"
-              />
+                              src="/transcritor-les/icons/logotipo.jpg"
+                              alt="Lutchi Enterprise Systems"
+                              className="w-10 h-10 rounded-xl object-cover"
+                            />
               <div>
                 <h3 className="text-lg font-bold text-foreground">Lutchi Enterprise Systems</h3>
                 <p className="text-xs text-muted-foreground">(LES)</p>
