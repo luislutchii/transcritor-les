@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Copy, Download, FileText, FileCode, Check, Loader2, Globe, Languages } from 'lucide-react';
 
 interface TranscriptionSegment {
@@ -68,8 +68,6 @@ export function TranscriptionView({
   const [viewMode, setViewMode] = useState<'segments' | 'full'>('segments');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const currentLanguage = useMemo(() => LANGUAGES[selectedLanguage] || LANGUAGES.auto, [selectedLanguage]);
-
   const handleSegmentClick = useCallback((index: number) => {
     if (segments[index]) {
       onSeek(segments[index].timestamp[0]);
@@ -82,7 +80,7 @@ export function TranscriptionView({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       onCopy();
-    } catch (error) {
+    } catch {
       // Fallback
       if (textareaRef.current) {
         textareaRef.current.value = text;
