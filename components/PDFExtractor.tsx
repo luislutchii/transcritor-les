@@ -3,9 +3,10 @@
 import { useCallback, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configurar worker do pdfjs
+// Configurar worker do pdfjs com basePath para GitHub Pages
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+  const basePath = '/transcritor-les';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `${basePath}/pdf.worker.min.mjs`;
 }
 
 interface PDFExtractorProps {

@@ -74,7 +74,8 @@ export function BookTranslator({ onError }: BookTranslatorProps) {
 
   // Inicializar worker de tradução
   useEffect(() => {
-    const worker = new Worker('/translation-worker.js', { type: 'module' });
+    const basePath = '/transcritor-les';
+    const worker = new Worker(`${basePath}/translation-worker.js`, { type: 'module' });
     workerRef.current = worker;
 
     worker.onmessage = (event) => {

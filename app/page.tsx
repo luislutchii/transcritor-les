@@ -68,7 +68,8 @@ export default function Home() {
 
   // Inicializar worker
   useEffect(() => {
-    const worker = new Worker('/worker.js', { type: 'module' });
+    const basePath = '/transcritor-les';
+    const worker = new Worker(`${basePath}/worker.js`, { type: 'module' });
     workerRef.current = worker;
 
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
