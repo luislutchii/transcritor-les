@@ -154,8 +154,10 @@ export function FileUploader({
             );
             
             // Capturar stream do vídeo e criar source no offlineContext
-            const stream = (video as HTMLVideoElement & { captureStream: () => MediaStream }).captureStream();
-            const source = (offlineContext as unknown as { createMediaStreamSource: (stream: MediaStream) => MediaStreamAudioSourceNode }).createMediaStreamSource(stream);
+            // @ts-expect-error - captureStream exists on HTMLVideoElement but not in TS types
+            const stream = video.captureStream();
+            // @ts-expect-error - createMediaStreamSource exists on OfflineAudioContext but not in TS types
+            const source = offlineContext.createMediaStreamSource(stream);
             source.connect(offlineContext.destination);
             
             // Reproduzir e renderizar
