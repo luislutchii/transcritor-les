@@ -5,6 +5,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // GitHub Pages configuration
+  basePath: process.env.NODE_ENV === 'production' ? '/transcritor-les' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/transcritor-les/' : '',
   webpack: (config, { isServer }) => {
     // Suporte a WebAssembly
     config.experiments = {
