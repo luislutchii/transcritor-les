@@ -173,9 +173,11 @@ export function Footer() {
           {/* Coluna 1: Sobre a Empresa */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary-foreground" />
-              </div>
+              <img
+                src="/icons/logotipo.jpg"
+                alt="Lutchi Enterprise Systems"
+                className="w-10 h-10 rounded-xl object-cover"
+              />
               <div>
                 <h3 className="text-lg font-bold text-foreground">Lutchi Enterprise Systems</h3>
                 <p className="text-xs text-muted-foreground">(LES)</p>

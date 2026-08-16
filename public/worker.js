@@ -11,38 +11,23 @@ env.useBrowserCache = true;
 env.backends = ['webgpu', 'wasm'];
 
 // Estado do worker
-let transcriber: any = null;
-let currentModelId: string = 'Xenova/whisper-tiny';
-let isModelLoading: boolean = false;
-let progressCallback: ((progress: any) => void) | null = null;
-
-// Tipos de mensagens
-type WorkerMessage =
-  | { type: 'INIT'; modelId: string; options?: { language?: string; task?: string } }
-  | { type: 'TRANSCRIBE'; audioData: Float32Array; options?: { language?: string; task?: string; chunkLength?: number; strideLength?: number } }
-  | { type: 'SET_PROGRESS_CALLBACK'; enabled: boolean }
-  | { type: 'TERMINATE' };
-
-type WorkerResponse =
-  | { type: 'READY'; backend: string; modelId: string }
-  | { type: 'PROGRESS'; progress: number; status: string; file?: string }
-  | { type: 'RESULT'; text: string; segments: any[]; language: string; duration: number }
-  | { type: 'ERROR'; error: string; code?: string }
-  | { type: 'LOG'; message: string };
+let transcriber = null;
+let currentModelId = 'Xenova/whisper-tiny';
+let isModelLoading = false;
 
 // Função auxiliar para enviar mensagens
-function postMessage(message: WorkerResponse) {
+function postMessage(message) {
   self.postMessage(message);
 }
 
 // Função para log
-function log(message: string) {
+function log(message) {
   postMessage({ type: 'LOG', message: `[Worker] ${message}` });
   console.log(`[Worker] ${message}`);
 }
 
 // Inicializar pipeline
-async function initializePipeline(modelId: string) {
+async function initializePipeline(modelId) {
   if (transcriber && currentModelId === modelId) {
     log(`Modelo ${modelId} já carregado`);
     return;
@@ -59,10 +44,7 @@ async function initializePipeline(modelId: string) {
       'automatic-speech-recognition',
       modelId,
       {
-        progress_callback: (progress: any) => {
-          if (progressCallback) {
-            progressCallback(progress);
-          }
+        progress_callback: (progress) => {
           postMessage({
             type: 'PROGRESS',
             progress: progress.progress ?? 0,
@@ -74,7 +56,7 @@ async function initializePipeline(modelId: string) {
     );
 
     // Obter informações do backend
-    const backendInfo = env.backends.find((b: string) => b === 'webgpu') ? 'WebGPU' : 'WASM';
+    const backendInfo = env.backends.find((b) => b === 'webgpu') ? 'WebGPU' : 'WASM';
 
     log(`Modelo ${modelId} carregado com sucesso (${backendInfo})`);
     isModelLoading = false;
@@ -97,10 +79,7 @@ async function initializePipeline(modelId: string) {
 }
 
 // Processar áudio
-async function processAudio(
-  audioData: Float32Array,
-  options: { language?: string; task?: string; chunkLength?: number; strideLength?: number } = {}
-) {
+async function processAudio(audioData, options = {}) {
   if (!transcriber) {
     postMessage({
       type: 'ERROR',
@@ -129,12 +108,12 @@ async function processAudio(
 
     // Normalizar resultado
     const segments = result.chunks ?? [];
-    const text = segments.map((s: any) => s.text).join(' ').trim();
+    const text = segments.map((s) => s.text).join(' ').trim();
 
     postMessage({
       type: 'RESULT',
       text,
-      segments: segments.map((s: any) => ({
+      segments: segments.map((s) => ({
         text: s.text.trim(),
         timestamp: s.timestamp ?? [0, 0],
       })),
@@ -153,7 +132,7 @@ async function processAudio(
 }
 
 // Handler principal de mensagens
-self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
+self.onmessage = async (event) => {
   const message = event.data;
 
   switch (message.type) {
@@ -176,12 +155,12 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       break;
 
     default:
-      log(`Mensagem desconhecida: ${(message as any).type}`);
+      log(`Mensagem desconhecida: ${message.type}`);
   }
 };
 
 // Handler de erros não capturados
-self.onerror = (error: ErrorEvent) => {
+self.onerror = (error) => {
   log(`Erro não capturado: ${error.message}`);
   postMessage({
     type: 'ERROR',
@@ -190,7 +169,7 @@ self.onerror = (error: ErrorEvent) => {
   });
 };
 
-self.onunhandledrejection = (event: PromiseRejectionEvent) => {
+self.onunhandledrejection = (event) => {
   log(`Promise rejeitada: ${event.reason}`);
   postMessage({
     type: 'ERROR',

@@ -12,7 +12,8 @@ interface MediaPlayerProps {
 }
 
 export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }: MediaPlayerProps) {
-  const mediaRef = useRef<HTMLMediaElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -22,6 +23,10 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
+  const getMedia = useCallback(() => {
+    return type === 'video' ? videoRef.current : audioRef.current;
+  }, [type]);
+
   const formatTime = useCallback((time: number) => {
     if (isNaN(time) || !isFinite(time)) return '0:00';
     const minutes = Math.floor(time / 60);
@@ -30,18 +35,18 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
   }, []);
 
   const handleTimeUpdate = useCallback(() => {
-    const media = mediaRef.current;
+    const media = getMedia();
     if (!media) return;
     const time = media.currentTime;
     setCurrentTime(time);
     onTimeUpdate?.(time);
-  }, [onTimeUpdate]);
+  }, [getMedia, onTimeUpdate]);
 
   const handleLoadedMetadata = useCallback(() => {
-    const media = mediaRef.current;
+    const media = getMedia();
     if (!media) return;
     setDuration(media.duration);
-  }, []);
+  }, [getMedia]);
 
   const handleEnded = useCallback(() => {
     setIsPlaying(false);
@@ -49,7 +54,7 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
   }, []);
 
   const togglePlay = useCallback(() => {
-    const media = mediaRef.current;
+    const media = getMedia();
     if (!media) return;
     if (isPlaying) {
       media.pause();
@@ -57,10 +62,10 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
       media.play().catch(console.error);
     }
     setIsPlaying(!isPlaying);
-  }, [isPlaying]);
+  }, [isPlaying, getMedia]);
 
   const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const media = mediaRef.current;
+    const media = getMedia();
     if (!media || duration === 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
@@ -68,19 +73,19 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
     media.currentTime = newTime;
     setCurrentTime(newTime);
     onSeek?.(newTime);
-  }, [duration, onSeek]);
+  }, [duration, onSeek, getMedia]);
 
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const media = mediaRef.current;
+    const media = getMedia();
     if (!media) return;
     const newVolume = parseFloat(e.target.value);
     media.volume = newVolume;
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
-  }, []);
+  }, [getMedia]);
 
   const toggleMute = useCallback(() => {
-    const media = mediaRef.current;
+    const media = getMedia();
     if (!media) return;
     if (isMuted) {
       media.volume = volume;
@@ -89,10 +94,10 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
       media.volume = 0;
       setIsMuted(true);
     }
-  }, [isMuted, volume]);
+  }, [isMuted, volume, getMedia]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    const media = mediaRef.current;
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const media = getMedia();
     if (!media) return;
 
     switch (e.key) {
@@ -130,10 +135,11 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
         toggleFullscreen();
         break;
     }
-  }, [togglePlay, duration, toggleMute]);
+  }, [togglePlay, duration, toggleMute, getMedia]);
 
   const toggleFullscreen = useCallback(() => {
-    const media = mediaRef.current;
+    if (type !== 'video') return;
+    const media = videoRef.current;
     if (!media) return;
 
     if (!isFullscreen) {
@@ -142,7 +148,7 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
       document.exitFullscreen?.().catch(console.error);
     }
     setIsFullscreen(!isFullscreen);
-  }, [isFullscreen]);
+  }, [type, isFullscreen]);
 
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
@@ -150,21 +156,21 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
     controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
   }, []);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     };
   }, []);
 
-  // Sync src changes
   useEffect(() => {
-    const media = mediaRef.current;
+    const media = getMedia();
     if (media && src) {
       media.src = src;
       media.load();
     }
-  }, [src, type]);
+  }, [src, type, getMedia]);
+
+  const isVideo = type === 'video';
 
   if (!src) {
     return (
@@ -177,9 +183,6 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
     );
   }
 
-  const isVideo = type === 'video';
-  const MediaElement = isVideo ? 'video' : 'audio';
-
   return (
     <div
       className={`relative w-full ${isVideo ? 'aspect-video' : 'h-24'} bg-black rounded-xl overflow-hidden ${className}`}
@@ -188,19 +191,32 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
-      <MediaElement
-        ref={mediaRef}
-        src={src}
-        type={isVideo ? 'video/mp4' : 'audio/mpeg'}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        playsInline
-        crossOrigin="anonymous"
-        className="w-full h-full object-contain"
-      />
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          src={src}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          playsInline
+          crossOrigin="anonymous"
+          className="w-full h-full object-contain"
+        />
+      ) : (
+        <audio
+          ref={audioRef}
+          src={src}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          crossOrigin="anonymous"
+          className="w-full h-full object-contain"
+        />
+      )}
 
       {/* Overlay de controles */}
       <div
@@ -221,7 +237,7 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
           aria-valuemax={100}
           aria-valuenow={duration > 0 ? Math.round((currentTime / duration) * 100) : 0}
           onKeyDown={(e) => {
-            const media = mediaRef.current;
+            const media = getMedia();
             if (!media || duration === 0) return;
             if (e.key === 'ArrowLeft') {
               e.preventDefault();
@@ -248,7 +264,7 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
 
           <div className="flex items-center gap-3 flex-1 justify-center">
             <button
-              onClick={() => { const media = mediaRef.current; if (media) media.currentTime = Math.max(0, media.currentTime - 10); }}
+              onClick={() => { const media = getMedia(); if (media) media.currentTime = Math.max(0, media.currentTime - 10); }}
               className="p-2 text-white/80 hover:text-white transition-colors"
               aria-label="Voltar 10s"
             >
@@ -264,7 +280,7 @@ export function MediaPlayer({ src, type, onTimeUpdate, onSeek, className = '' }:
             </button>
 
             <button
-              onClick={() => { const media = mediaRef.current; if (media) media.currentTime = Math.min(duration, media.currentTime + 10); }}
+              onClick={() => { const media = getMedia(); if (media) media.currentTime = Math.min(duration, media.currentTime + 10); }}
               className="p-2 text-white/80 hover:text-white transition-colors"
               aria-label="Avançar 10s"
             >

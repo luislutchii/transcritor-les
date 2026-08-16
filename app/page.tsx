@@ -222,11 +222,13 @@ export default function Home() {
     workerRef.current?.postMessage({ type: 'INIT', modelId });
   }, []);
 
-  const steps = [
-    { label: 'Arquivo', status: activeStep >= 1 ? (activeStep === 1 ? 'active' : 'completed') : 'pending' as const },
-    { label: 'Modelo', status: activeStep >= 2 ? (activeStep === 2 ? 'active' : 'completed') : isModelLoaded ? 'completed' : 'pending' as const },
-    { label: 'Transcrição', status: activeStep >= 3 ? 'completed' : isTranscribing ? 'active' : 'pending' as const },
-    { label: 'Resultado', status: transcriptionText ? 'completed' : 'pending' as const },
+  type StepStatus = 'pending' | 'active' | 'completed' | 'error';
+
+  const steps: { label: string; status: StepStatus }[] = [
+    { label: 'Arquivo', status: activeStep >= 1 ? (activeStep === 1 ? 'active' : 'completed') : 'pending' },
+    { label: 'Modelo', status: activeStep >= 2 ? (activeStep === 2 ? 'active' : 'completed') : isModelLoaded ? 'completed' : 'pending' },
+    { label: 'Transcrição', status: activeStep >= 3 ? 'completed' : isTranscribing ? 'active' : 'pending' },
+    { label: 'Resultado', status: transcriptionText ? 'completed' : 'pending' },
   ];
 
   const currentModel = MODELS.find(m => m.id === selectedModel)!;
@@ -238,6 +240,12 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
+              {/* Logotipo da LES */}
+              <img
+                src="/icons/logotipo.jpg"
+                alt="Lutchi Enterprise Systems"
+                className="w-10 h-10 rounded-xl object-cover"
+              />
               <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
                 <Mic className="w-6 h-6 text-primary-foreground" />
               </div>
@@ -408,7 +416,7 @@ export default function Home() {
               <FileUploader
                 onFileSelect={handleFileSelect}
                 onError={handleFileError}
-                maxSizeMB={500}
+                maxSizeMB={2048}
               />
 
               {currentFile && (
