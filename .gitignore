@@ -49,3 +49,4 @@ Desktop.ini
 logs
 *.log
 .vercel
+.env*

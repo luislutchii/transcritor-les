@@ -4,7 +4,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "frameworkVersion": "14",
   "github": {
     "enabled": true,
     "autoAlias": true,
