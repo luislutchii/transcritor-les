@@ -251,7 +251,6 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">TranscritorLES</h1>
-                <p className="text-xs text-muted-foreground">Powered by Transformers.js & Whisper</p>
               </div>
             </div>
 

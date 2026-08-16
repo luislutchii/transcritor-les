@@ -93,15 +93,6 @@ export function Footer() {
               {/* Card do CEO - Destaque Especial */}
               {member.isCEO && (
                 <>
-                  {/* Badge de Liderança */}
-                  <div className="absolute top-4 left-4 right-4 z-10">
-                    <div className="flex justify-center">
-                      <span className="px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold rounded-full shadow-lg shadow-indigo-500/30">
-                        {member.badge}
-                      </span>
-                    </div>
-                  </div>
-
                   {/* Anel decorativo superior */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full blur-2xl opacity-30 -translate-y-1/2" />
                 </>
@@ -128,7 +119,6 @@ export function Footer() {
                   {member.isCEO && (
                     <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                       <Award className="w-3.5 h-3.5 text-yellow-400" />
-                      <span className="font-medium text-foreground">Fundador da LES</span>
                     </div>
                   )}
 
