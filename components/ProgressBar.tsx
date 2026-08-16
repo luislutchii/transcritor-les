@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Download, XCircle, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, XCircle, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ProgressBarProps {
   progress: number;

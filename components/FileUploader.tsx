@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Upload, FileAudio, FileVideo, X, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, FileAudio, FileVideo, Loader2 } from 'lucide-react';
 
 interface FileUploaderProps {
   onFileSelect: (file: File, audioData: Float32Array, duration: number) => void;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Mic, MicOff, Cpu, Zap, Settings, Info, Github, ExternalLink, Moon, Sun, Trash2, RotateCcw, AlertCircle, Loader2 } from 'lucide-react';
+import { Mic, Cpu, Zap, Settings, Info, Github, ExternalLink, Moon, Sun, Trash2, RotateCcw, AlertCircle, Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/FileUploader';
 import { MediaPlayer } from '@/components/MediaPlayer';
 import { TranscriptionView } from '@/components/TranscriptionView';
