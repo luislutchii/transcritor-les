@@ -8,7 +8,22 @@ import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers
 // Configuração do ambiente Transformers.js
 env.allowLocalModels = false;
 env.useBrowserCache = true;
-env.backends = ['webgpu', 'wasm'];
+
+// Detectar se estamos em ambiente sem suporte a SharedArrayBuffer (GitHub Pages, etc.)
+const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+const hasCrossOriginIsolation = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
+
+// Configurar backends baseado no ambiente
+if (hasCrossOriginIsolation) {
+  // Ambiente com suporte completo (WebGPU + WASM com SharedArrayBuffer)
+  env.backends = ['webgpu', 'wasm'];
+} else {
+  // GitHub Pages e outros sem COEP/COOP - forçar WASM sem SharedArrayBuffer
+  env.backends = ['wasm'];
+  if (typeof navigator !== 'undefined' && navigator.userAgent) {
+    console.warn('[Worker] Ambiente sem crossOriginIsolated - usando fallback WASM (mais lento)');
+  }
+}
 
 // Estado do worker
 let transcriber = null;
@@ -70,9 +85,42 @@ async function initializePipeline(modelId) {
     isModelLoading = false;
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     log(`Erro ao carregar modelo: ${errorMessage}`);
+    
+    // Tratamento específico para erro de SharedArrayBuffer
+    let userFriendlyError = `Falha ao carregar modelo: ${errorMessage}`;
+    if (errorMessage.includes('SharedArrayBuffer') || errorMessage.includes('crossOriginIsolated') || errorMessage.includes('COEP') || errorMessage.includes('COOP')) {
+      userFriendlyError = 'Ambiente sem suporte a SharedArrayBuffer (ex: GitHub Pages). O modelo será carregado em modo WASM fallback. Por favor, aguarde...';
+      // Tentar novamente forçando WASM
+      try {
+        log('Tentando novamente com fallback WASM forçado...');
+        env.backends = ['wasm'];
+        transcriber = await pipeline('automatic-speech-recognition', modelId, {
+          progress_callback: (progress) => {
+            postMessage({
+              type: 'PROGRESS',
+              progress: progress.progress ?? 0,
+              status: progress.status ?? 'Carregando (fallback WASM)...',
+              file: progress.file,
+            });
+          },
+        });
+        log(`Modelo ${modelId} carregado com fallback WASM`);
+        isModelLoading = false;
+        postMessage({
+          type: 'READY',
+          backend: 'WASM (fallback)',
+          modelId: modelId,
+        });
+        return;
+      } catch (fallbackError) {
+        const fallbackMsg = fallbackError instanceof Error ? fallbackError.message : 'Erro no fallback';
+        userFriendlyError = `Falha ao carregar modelo mesmo com fallback: ${fallbackMsg}`;
+      }
+    }
+    
     postMessage({
       type: 'ERROR',
-      error: `Falha ao carregar modelo: ${errorMessage}`,
+      error: userFriendlyError,
       code: 'MODEL_LOAD_ERROR',
     });
   }
@@ -179,3 +227,4 @@ self.onunhandledrejection = (event) => {
 };
 
 log('Worker iniciado e aguardando mensagens...');
+log(`Ambiente: ${hasCrossOriginIsolation ? 'crossOriginIsolated (WebGPU+WASM)' : 'Sem crossOriginIsolated - WASM fallback'}`);
