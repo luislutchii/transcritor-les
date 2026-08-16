@@ -8,6 +8,10 @@ const nextConfig = {
   // GitHub Pages configuration
   basePath: process.env.NODE_ENV === 'production' ? '/transcritor-les' : '',
   assetPrefix: process.env.NODE_ENV === 'production' ? '/transcritor-les/' : '',
+  // Disable build traces to avoid ENOENT error on _not-found page
+  experimental: {
+    skipBuildTraces: true,
+  },
   webpack: (config, { isServer }) => {
     // Suporte a WebAssembly
     config.experiments = {
