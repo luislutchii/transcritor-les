@@ -137,6 +137,7 @@ export function FileUploader({
         const video = document.createElement('video');
         video.preload = 'metadata';
         video.crossOrigin = 'anonymous';
+        video.muted = true; // Importante: evitar reprodução audível
         
         const objectUrl = URL.createObjectURL(file);
         video.src = objectUrl;
@@ -152,14 +153,14 @@ export function FileUploader({
               16000
             );
             
-            // Criar MediaElementAudioSourceNode no audioContext principal
-            const mediaElementSource = audioContext.createMediaElementSource(video);
-            
-            // Conectar source ao destination do offlineContext
-            mediaElementSource.connect(offlineContext.destination);
+            // Capturar stream do vídeo e criar source no offlineContext
+            const stream = (video as HTMLVideoElement & { captureStream: () => MediaStream }).captureStream();
+            const source = (offlineContext as unknown as { createMediaStreamSource: (stream: MediaStream) => MediaStreamAudioSourceNode }).createMediaStreamSource(stream);
+            source.connect(offlineContext.destination);
             
             // Reproduzir e renderizar
             video.currentTime = 0;
+            video.muted = true;
             await video.play();
             
             const renderedBuffer = await offlineContext.startRendering();
