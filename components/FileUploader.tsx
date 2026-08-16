@@ -147,28 +147,92 @@ export function FileUploader({
                       try {
                         const duration = video.duration;
 
-                        // Capturar stream do vídeo
+                        // Estratégia 1: Tentar OfflineAudioContext.createMediaStreamSource (navegadores modernos)
                         // @ts-expect-error - captureStream exists on HTMLVideoElement but not in TS types
                         const stream = video.captureStream();
+                  
+                        let audioData: Float32Array;
 
-                        // Criar OfflineAudioContext para renderizar
-                        const offlineContext = new OfflineAudioContext(
-                          1, // mono
-                          duration * 16000,
-                          16000
-                        );
+                        try {
+                          // Tentar método moderno: OfflineAudioContext.createMediaStreamSource
+                          const offlineContext = new OfflineAudioContext(
+                            1, // mono
+                            duration * 16000,
+                            16000
+                          );
+                    
+                          // @ts-expect-error - createMediaStreamSource exists on OfflineAudioContext but not in TS types
+                          const source = offlineContext.createMediaStreamSource(stream);
+                          source.connect(offlineContext.destination);
 
-                        // Criar MediaStreamSource DENTRO do offlineContext (mesmo contexto)
-                        // @ts-expect-error - createMediaStreamSource exists on OfflineAudioContext but not in TS types
-                        const source = offlineContext.createMediaStreamSource(stream);
-                        source.connect(offlineContext.destination);
+                          video.currentTime = 0;
+                          await video.play();
 
-                        // Reproduzir e renderizar
-                        video.currentTime = 0;
-                        await video.play();
+                          const renderedBuffer = await offlineContext.startRendering();
+                          audioData = renderedBuffer.getChannelData(0);
+                        } catch (offlineError) {
+                                                  // Estratégia 2: Fallback para navegadores sem OfflineAudioContext.createMediaStreamSource
+                                                  // Usar audioContext principal + MediaRecorder
+                                                  console.warn('[FileUploader] OfflineAudioContext.createMediaStreamSource não suportado, usando fallback MediaRecorder');
 
-                        const renderedBuffer = await offlineContext.startRendering();
-                        const audioData = renderedBuffer.getChannelData(0);
+                                                  // Usar audioContext principal
+                                                  const destination = audioContext.createMediaStreamDestination();
+                                                  const mediaElementSource = audioContext.createMediaStreamSource(stream);
+                                                  mediaElementSource.connect(destination);
+
+                                                  // Gravar com MediaRecorder
+                                                  const mediaRecorder = new MediaRecorder(destination.stream);
+                                                  const chunks: BlobPart[] = [];
+
+                                                  mediaRecorder.ondataavailable = (e) => {
+                                                    if (e.data.size > 0) chunks.push(e.data);
+                                                  };
+
+                                                  // Função assíncrona para aguardar a gravação
+                                                  const recordAndWait = async () => {
+                                                    mediaRecorder.start();
+                                                    video.currentTime = 0;
+                                                    await video.play();
+
+                                                    // Aguardar o vídeo terminar
+                                                    await new Promise<void>((resolve) => {
+                                                      video.onended = () => {
+                                                        mediaRecorder.stop();
+                                                        resolve();
+                                                      };
+
+                                                      // Timeout de segurança (duração + 5s)
+                                                      setTimeout(() => {
+                                                        if (mediaRecorder.state === 'recording') {
+                                                          mediaRecorder.stop();
+                                                          resolve();
+                                                        }
+                                                      }, (duration + 5) * 1000);
+                                                    });
+                                                  };
+
+                                                  await recordAndWait();
+
+                                                  // Decodificar o blob gravado
+                                                  const blob = new Blob(chunks, { type: 'audio/webm' });
+                                                  const arrayBuffer = await blob.arrayBuffer();
+                                                  const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                                                  // Resample para 16kHz mono usando OfflineAudioContext
+                                                  const offlineContext = new OfflineAudioContext(
+                                                    1,
+                                                    audioBuffer.duration * 16000,
+                                                    16000
+                                                  );
+
+                                                  const bufferSource = offlineContext.createBufferSource();
+                                                  bufferSource.buffer = audioBuffer;
+                                                  bufferSource.connect(offlineContext.destination);
+                                                  bufferSource.start(0);
+
+                                                  const renderedBuffer = await offlineContext.startRendering();
+                                                  audioData = renderedBuffer.getChannelData(0);
+                                                }
 
                         URL.revokeObjectURL(objectUrl);
 
